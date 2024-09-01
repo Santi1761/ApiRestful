@@ -35,30 +35,39 @@ class UserService {
 
     public async login(userInput: any) {
         try {
+            console.log("Intentando iniciar sesión con:", userInput.email);
+            
             const user = await this.findByEmail(userInput.email);
             if (!user) {
-                throw new notAuthorizedError("Credenciales inválidas"); 
+                console.log("Usuario no encontrado");
+                throw new notAuthorizedError("Credenciales inválidas");
             }
-
+    
             const isMatch = await bcrypt.compare(userInput.password, user.password);
             if (!isMatch) {
-                throw new notAuthorizedError("Credenciales inválidas"); 
+                console.log("Contraseña incorrecta");
+                throw new notAuthorizedError("Credenciales inválidas");
             }
-
+    
+            console.log("Inicio de sesión exitoso para:", user.email);
+    
             const token = this.generateToken(user);
-            return { 
+            return {
                 user: {
                     id: user._id,
-                    username: user.username, 
-                    email: user.email, 
-                    role: user.role 
-                }, 
-                token 
+                    username: user.username,
+                    email: user.email,
+                    role: user.role
+                },
+                token
             };
         } catch (error) {
+            console.error("Error en el login:");
             throw error;
         }
     }
+    
+    
 
     public async getAll(): Promise<UserDocument[]> {
         try {
