@@ -1,34 +1,25 @@
-// src/index.ts
+import express, {Express, Request, Response} from 'express';
+import dotenv from 'dotenv'
 
-import express from 'express';
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
+import router from './routes/users.Routes';
+import { db } from './configs/db'  
 
-// Cargar variables de entorno desde el archivo .env
+const app: Express = express();
 dotenv.config();
 
-// Crear una instancia de la aplicación Express
-const app = express();
-const port = process.env.PORT || 3000; // Usar el puerto definido en .env o el 3000 por defecto
+const PORT = process.env.PORT || 3000; 
 
-// Middleware para analizar el cuerpo de las solicitudes como JSON
 app.use(express.json());
+app.use(express.urlencoded({extended: true}))
 
-// Conectar a la base de datos MongoDB
-mongoose.connect(process.env.MONGO_URL!) 
-  .then(() => {
-    console.log('Conectado a MongoDB');
+app.use('/api/users', router);
+
+app.get('/', (req: Request, res: Response) => {
+  res.send('Hello, mundo!');
+});
+
+db.then (() => 
+  app.listen(PORT, () => {
+    console.log(`Server is running at http://localhost:${PORT}`);
   })
-  .catch(err => {
-    console.error('Error al conectar a MongoDB:', err);
-  });
-
-// Ruta de ejemplo
-app.get('/', (req, res) => {
-  res.send('¡Hola, mundo!');
-});
-
-// Iniciar el servidor
-app.listen(port, () => {
-  console.log(`Servidor escuchando en el puerto ${port}`);
-});
+);
