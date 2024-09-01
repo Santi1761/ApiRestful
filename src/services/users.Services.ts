@@ -22,12 +22,16 @@ class UserService {
 
     public async register(userInput: UserDocument): Promise<UserDocument> {
         try {            
-            userInput.role = 'user'; 
+            
+            if (!userInput.role) {
+                userInput.role = 'user'; 
+            }
             return await this.create(userInput);
         } catch (error) {
             throw error;
         }
     }
+    
 
     public async login(userInput: any) {
         try {
