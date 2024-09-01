@@ -1,5 +1,6 @@
 import Comment, { CommentDocument } from "../models/comments.Models";
 
+
 class CommentService {
     public async create(commentData: CommentDocument): Promise<CommentDocument> {
         try {
