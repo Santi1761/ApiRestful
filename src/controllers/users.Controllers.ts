@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { UserDocument } from "../models/users.Models"; // Asegúrate de tener el modelo de usuario
+import { UserDocument } from "../models/users.Models"; 
 import { CommentDocument } from "../models/comments.Models"; 
 import userService from "../services/users.Services"; 
 import { notAuthorizedError, userNotFoundError, userExistError, commentNotFoundError, notCommentAuthorError, notReactionOwnerError, reactionNotFoundError  } from "../exceptions/index"; // Asegúrate de tener estas excepciones definidas
@@ -10,15 +10,17 @@ class UserController {
         try {
             const userCount = await userService.getUserCount();
     
+            
             if (userCount === 0) {
                 req.body.role = 'superadmin';
             } else if (req.body.role === 'superadmin') {
                 
-                if (req.body.loggedUser.role !== 'superadmin') {
+                if (!req.body.loggedUser || req.body.loggedUser.role !== 'superadmin') {
                     return res.status(403).json({ message: "No tienes permiso para crear un superadmin" });
                 }
             }
     
+            
             const user: UserDocument = await userService.create(req.body as UserDocument);
             return res.status(201).json(user);
     
@@ -27,6 +29,7 @@ class UserController {
             return res.status(500).json({ message: "Error interno del servidor" });
         }
     }
+    
     
     
 
