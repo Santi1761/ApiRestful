@@ -36,8 +36,8 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
         }
 
         // Assign the decoded token to req.user instead of req.body.loggedUser
-        req.user = {
-            id: decoded.user_id,
+        req.body.loggedUser = {
+            user_id: decoded.user_id,
             email: decoded.email,
             role: decoded.role
         };

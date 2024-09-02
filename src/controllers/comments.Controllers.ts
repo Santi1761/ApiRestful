@@ -97,7 +97,6 @@ class CommentController {
         }
     }
     
-    
 
     // Eliminar un comentario
     public async delete(req: Request, res: Response): Promise<void> {
