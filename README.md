@@ -102,3 +102,18 @@ Borrar comentario (requiere autenticación)
 ```
 DELETE: comments/:id
 ```
+
+Responder comentario (requiere autenticación)
+```
+POST: comments/:id/reply
+```
+
+Agregar reacción a comentario (requiere autenticación)
+```
+POST: comments/:id/reactions
+```
+
+Borrar reacción de comentario (requiere autenticación)
+```
+DELETE: comments/:id/reactions
+```
