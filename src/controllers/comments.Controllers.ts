@@ -173,12 +173,12 @@ public async addReaction(req: Request, res: Response): Promise<void> {
             return;
         }
 
-        // Asegúrate de que 'reactions' esté inicializado
+        
         if (!comment.reactions) {
             comment.reactions = [];
         }
 
-        // Agregar la reacción al comentario
+        
         comment.reactions.push({
             user: author,
             type
@@ -202,7 +202,7 @@ public async removeReaction(req: Request, res: Response): Promise<void> {
             return;
         }
 
-        // Asegúrate de que 'reactions' esté inicializado
+       
         if (!comment.reactions) {
             comment.reactions = [];
         }

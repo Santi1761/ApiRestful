@@ -29,9 +29,6 @@ router.get("/:id/group/:groupId", authMiddleware, (req: Request, res: Response) 
     res.send(`Get user with ID ${req.params.id} and group ID: ${req.params.groupId}`);
 });
 
-// Perfil del usuario autenticado (requiere autenticación)
-// router.get("/profile", authMiddleware, userController.getUser);
-
 // Obtener un usuario por ID (requiere autenticación)
 router.get("/:id", authMiddleware, userController.getById);
 
