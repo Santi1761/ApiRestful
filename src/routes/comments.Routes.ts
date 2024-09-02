@@ -13,6 +13,8 @@ router.delete('/:id', authMiddleware, commentController.delete);
 
 router.post('/:id/reply', authMiddleware, commentController.reply);
 
+router.get('/:id/reactions', authMiddleware, commentController.getReactions);
+
 router.post('/:id/reactions', authMiddleware, commentController.addReaction);
 
 router.delete('/:id/reactions', authMiddleware, commentController.removeReaction);

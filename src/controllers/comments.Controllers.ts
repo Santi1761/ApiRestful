@@ -146,6 +146,22 @@ class CommentController {
     }
 }
 
+public async getReactions(req: Request, res: Response): Promise<void> {
+    try {
+        const commentId = req.params.id;
+        const comment = await commentService.getById(commentId);
+        if (!comment) {
+            res.status(404).json({ message: `Comment with ID ${commentId} not found` });
+            return;
+        }
+
+        const reactions = comment.reactions || [];
+        res.status(200).json(reactions);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching reactions', error });
+    }
+}
+
 public async addReaction(req: Request, res: Response): Promise<void> {
     try {
         const { type, author } = req.body;
