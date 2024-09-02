@@ -30,9 +30,6 @@ class UserController {
         }
     }
     
-    
-    
-
     public async register(req: Request, res: Response) {
         try {
             const user: UserDocument = await userService.register(req.body as UserDocument);
@@ -45,7 +42,6 @@ class UserController {
             return res.status(500).json({ message: "Error interno del servidor" });
         }
     }
-
 
     public async login(req: Request, res: Response) {
         try {
