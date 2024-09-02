@@ -1,33 +1,68 @@
-import { object, string, TypeOf, array, optional } from 'zod';
-import mongoose from 'mongoose';
+import Joi from 'joi';
+import { Types } from 'mongoose';
 
-const commentSchema = object({
-    content: string({
-        required_error: "El contenido es requerido",
-    }).min(1, "El contenido no puede estar vacío"),
-    
-    author: string({
-        required_error: "El autor es requerido",
-    }).refine(value => mongoose.Types.ObjectId.isValid(value), {
-        message: "El autor debe ser un ObjectId válido"
+export const createCommentSchema = Joi.object({
+    content: Joi.string().required().messages({
+        'string.base': 'El contenido debe ser un texto.',
+        'string.empty': 'El contenido no puede estar vacío.',
+        'any.required': 'El contenido es obligatorio.'
     }),
-
-    parentId: optional(string().refine(value => mongoose.Types.ObjectId.isValid(value), {
-        message: "El parentId debe ser un ObjectId válido"
-    })),
-
-    reactions: optional(array(object({
-        user: string({
-            required_error: "El usuario es requerido",
-        }).refine(value => mongoose.Types.ObjectId.isValid(value), {
-            message: "El usuario debe ser un ObjectId válido"
-        }),
-        type: string({
-            required_error: "El tipo de reacción es requerido",
-        }).min(1, "El tipo de reacción no puede estar vacío")
-    })))
+    author: Joi.string().custom((value, helpers) => {
+        if (!Types.ObjectId.isValid(value)) {
+            return helpers.error('any.invalid');
+        }
+        return value;
+    }, 'ObjectId validation').required().messages({
+        'any.invalid': 'El ID del autor no es válido.',
+        'any.required': 'El ID del autor es obligatorio.'
+    }),
+    parentId: Joi.string().allow(null).custom((value, helpers) => {
+        if (value && !Types.ObjectId.isValid(value)) {
+            return helpers.error('any.invalid');
+        }
+        return value;
+    }, 'ObjectId validation').optional(),
+    reactions: Joi.array().items(
+        Joi.object({
+            user: Joi.string().custom((value, helpers) => {
+                if (!Types.ObjectId.isValid(value)) {
+                    return helpers.error('any.invalid');
+                }
+                return value;
+            }, 'ObjectId validation').required(),
+            type: Joi.string().required().messages({
+                'string.base': 'El tipo de reacción debe ser un texto.',
+                'string.empty': 'El tipo de reacción no puede estar vacío.',
+                'any.required': 'El tipo de reacción es obligatorio.'
+            })
+        })
+    ).optional()
 });
 
-export type CommentSchema = TypeOf<typeof commentSchema>;
-
-export default commentSchema;
+export const updateCommentSchema = Joi.object({
+    content: Joi.string().optional().messages({
+        'string.base': 'El contenido debe ser un texto.',
+        'string.empty': 'El contenido no puede estar vacío.',
+    }),
+    parentId: Joi.string().allow(null).optional().custom((value, helpers) => {
+        if (value && !Types.ObjectId.isValid(value)) {
+            return helpers.error('any.invalid');
+        }
+        return value;
+    }, 'ObjectId validation').optional(),
+    reactions: Joi.array().items(
+        Joi.object({
+            user: Joi.string().custom((value, helpers) => {
+                if (!Types.ObjectId.isValid(value)) {
+                    return helpers.error('any.invalid');
+                }
+                return value;
+            }, 'ObjectId validation').required(),
+            type: Joi.string().required().messages({
+                'string.base': 'El tipo de reacción debe ser un texto.',
+                'string.empty': 'El tipo de reacción no puede estar vacío.',
+                'any.required': 'El tipo de reacción es obligatorio.'
+            })
+        })
+    ).optional()
+});
