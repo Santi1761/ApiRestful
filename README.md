@@ -33,6 +33,8 @@ npm run dev
 
 ### Funcionalidades y endpoints
 
+#### Usuarios
+
 Registrar usuario (no requiere autenticación)
 ```
 POST: /register
@@ -71,4 +73,31 @@ PUT: /:id
 Eliminar usuario (requiere autenticación y rol de superadmin)
 ```
 DELETE: /:id
+```
+
+#### Comentarios
+
+Crear comentarios (requiere autenticación)
+```
+POST: comments/
+```
+
+Obtener todos los comentarios (requiere autenticación)
+```
+GET: comments/
+```
+
+Obtener un comentario por id (requiere autenticación)
+```
+GET: comments/:id
+```
+
+Actualizar comentario (requiere autenticación)
+```
+PUT: comments/:id
+```
+
+Borrar comentario (requiere autenticación)
+```
+DELETE: comments/:id
 ```
