@@ -1,6 +1,5 @@
 import Comment, { CommentDocument } from "../models/comments.Models";
 
-
 class CommentService {
     public async create(commentData: CommentDocument): Promise<CommentDocument> {
         try {
@@ -47,6 +46,31 @@ class CommentService {
         }
     }
 
+    public async addReaction(commentId: string, reaction: { user: string, type: string }): Promise<CommentDocument | null> {
+        try {
+            const comment = await Comment.findByIdAndUpdate(
+                commentId,
+                { $push: { reactions: reaction } },
+                { new: true }
+            );
+            return comment;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async removeReaction(commentId: string, reactionId: string): Promise<CommentDocument | null> {
+        try {
+            const comment = await Comment.findByIdAndUpdate(
+                commentId,
+                { $pull: { reactions: { _id: reactionId } } },
+                { new: true }
+            );
+            return comment;
+        } catch (error) {
+            throw error;
+        }
+    }
 }
 
 export default new CommentService();
