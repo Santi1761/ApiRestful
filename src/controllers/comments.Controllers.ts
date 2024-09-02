@@ -119,6 +119,95 @@ class CommentController {
             res.status(500).json({ message: 'Error deleting comment', error });
         }
     }
+
+
+    
+ // Responder a un comentario existente (crear un hilo)
+ public async reply(req: Request, res: Response): Promise<void> {
+    try {
+        const { content, author } = req.body;  // Obtenemos author de req.body
+        const parentId = req.params.id; // ID del comentario al que se responde
+
+        const parentComment = await commentService.getById(parentId);
+        if (!parentComment) {
+            res.status(404).json({ message: `Comment with ID ${parentId} not found` });
+            return;
+        }
+
+        const replyData: CommentDocument = {
+            content,
+            author,  // Usamos el author que se pasa en el cuerpo de la solicitud
+            parentId: parentComment._id
+        } as CommentDocument;
+
+        const reply = await commentService.create(replyData);
+        res.status(201).json(reply);
+    } catch (error) {
+        res.status(500).json({ message: 'Error replying to comment', error });
+    }
 }
+
+public async addReaction(req: Request, res: Response): Promise<void> {
+    try {
+        const { type, author } = req.body;
+        const commentId = req.params.id;
+
+        const comment = await commentService.getById(commentId);
+        if (!comment) {
+            res.status(404).json({ message: `Comment with ID ${commentId} not found` });
+            return;
+        }
+
+        // Asegúrate de que 'reactions' esté inicializado
+        if (!comment.reactions) {
+            comment.reactions = [];
+        }
+
+        // Agregar la reacción al comentario
+        comment.reactions.push({
+            user: author,
+            type
+        });
+
+        const updatedComment = await comment.save();
+        res.status(200).json(updatedComment);
+    } catch (error) {
+        res.status(500).json({ message: 'Error adding reaction', error });
+    }
+}
+
+public async removeReaction(req: Request, res: Response): Promise<void> {
+    try {
+        const { author, type } = req.body;
+        const commentId = req.params.id;
+
+        const comment = await commentService.getById(commentId);
+        if (!comment) {
+            res.status(404).json({ message: `Comment with ID ${commentId} not found` });
+            return;
+        }
+
+        // Asegúrate de que 'reactions' esté inicializado
+        if (!comment.reactions) {
+            comment.reactions = [];
+        }
+
+        // Filtrar para eliminar la reacción del usuario actual
+        comment.reactions = comment.reactions.filter(reaction => {
+            return !(reaction.user.toString() === author.toString() && reaction.type === type);
+        });
+
+        const updatedComment = await comment.save();
+        res.status(200).json(updatedComment);
+    } catch (error) {
+        res.status(500).json({ message: 'Error removing reaction', error });
+    }
+}
+
+
+
+
+}
+
 
 export default new CommentController();

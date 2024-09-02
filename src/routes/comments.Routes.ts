@@ -11,4 +11,11 @@ router.get('/:id', authMiddleware, commentController.getById);
 router.put('/:id', authMiddleware, commentController.update);
 router.delete('/:id', authMiddleware, commentController.delete);
 
+router.post('/:id/reply', authMiddleware, commentController.reply);
+
+router.post('/:id/reactions', authMiddleware, commentController.addReaction);
+
+
+router.delete('/:id/reactions', authMiddleware, commentController.removeReaction);
+
 export default router;
