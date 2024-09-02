@@ -1,113 +1,153 @@
-import { Request, Response } from 'express';
-import commentService from '../services/comments.Services';
-import { CommentDocument } from '../models/comments.Models';
-import { createCommentSchema, updateCommentSchema } from '../schemas/comments.Schemas';
-import { commentNotFoundError, notCommentAuthorError } from '../exceptions/index';
+import { Request, Response } from "express";
+import { CommentDocument } from "../models/comments.Models"; 
+import commentService from "../services/comments.Services";
+import { notAuthorizedError, commentNotFoundError, notCommentAuthorError, notReactionOwnerError, reactionNotFoundError } from "../exceptions/index"; 
 
 class CommentController {
-    // Crear un nuevo comentario
-    public async create(req: Request, res: Response): Promise<void> {
+
+    public async create(req: Request, res: Response) {
         try {
-            // Validar el cuerpo de la solicitud usando Joi
-            const { error } = createCommentSchema.validate(req.body);
-            if (error) {
-                res.status(400).json({ message: 'Invalid input', error: error.details });
-                return;
+            const comment: CommentDocument = await commentService.create(req.body as CommentDocument);
+            return res.status(201).json(comment);
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: "Error interno del servidor" });
+        }
+    }
+
+    public async update(req: Request, res: Response) {
+        try {
+            const commentIdToUpdate = req.params.id;
+
+            const existingComment: CommentDocument | null = await commentService.getById(commentIdToUpdate);
+
+            if (!existingComment) {
+                throw new commentNotFoundError(`Comentario con ID ${commentIdToUpdate} no encontrado`);
             }
 
-            // Preparar los datos del comentario
-            const commentData = req.body as CommentDocument;
-            commentData.author = req.body.loggedUser.user_id;
+            if (req.body.loggedUser.user_id !== existingComment.author.toString()) {
+                throw new notCommentAuthorError("No tienes permiso para actualizar este comentario");
+            }
 
-            // Crear el comentario
-            const comment = await commentService.create(commentData);
-            res.status(201).json(comment);
+            const updatedComment: CommentDocument | null = await commentService.update(commentIdToUpdate, req.body as CommentDocument);
+
+            return res.json(updatedComment); 
         } catch (error) {
-            res.status(500).json({ message: 'Error creating comment', error });
+            if (error instanceof commentNotFoundError || error instanceof notCommentAuthorError) {
+                return res.status(403).json({ message: error.message });
+            }
+            console.error(error);
+            return res.status(500).json({ message: "Error interno del servidor" });
         }
     }
 
-    // Obtener todos los comentarios
-    public async getAll(req: Request, res: Response): Promise<void> {
+    public async getById(req: Request, res: Response) {
         try {
-            const comments = await commentService.getAll();
-            res.status(200).json(comments);
-        } catch (error) {
-            res.status(500).json({ message: 'Error fetching comments', error });
-        }
-    }
+            const commentIdToGet = req.params.id;
 
-    // Obtener un comentario por su ID
-    public async getById(req: Request, res: Response): Promise<void> {
-        try {
-            const { id } = req.params;
-            const comment = await commentService.getById(id);
+            const comment: CommentDocument | null = await commentService.getById(commentIdToGet);
 
             if (!comment) {
-                res.status(404).json({ message: `Comment with ID ${id} not found` });
-                return;
+                throw new commentNotFoundError(`Comentario con ID ${commentIdToGet} no encontrado`);
             }
 
-            res.status(200).json(comment);
+            return res.json(comment);
         } catch (error) {
-            res.status(500).json({ message: 'Error fetching comment', error });
+            if (error instanceof commentNotFoundError) {
+                return res.status(404).json({ message: error.message });
+            }
+            console.error(error);
+            return res.status(500).json({ message: "Error interno del servidor" });
         }
     }
 
-    // Actualizar un comentario existente
-    public async update(req: Request, res: Response): Promise<void> {
+    public async getAll(req: Request, res: Response) {
         try {
-            // Validar el cuerpo de la solicitud usando Joi
-            const { error } = updateCommentSchema.validate(req.body);
-            if (error) {
-                res.status(400).json({ message: 'Invalid input', error: error.details });
-                return;
-            }
-
-            const { id } = req.params;
-            const comment = await commentService.getById(id);
-
-            if (!comment) {
-                res.status(404).json({ message: `Comment with ID ${id} not found` });
-                return;
-            }
-
-            // Verificar si el usuario es el autor del comentario
-            if (comment.author.toString() !== req.body.loggedUser.user_id) {
-                res.status(403).json({ message: 'You are not authorized to update this comment' });
-                return;
-            }
-
-            // Actualizar el comentario
-            const updatedComment = await commentService.update(id, req.body);
-            res.status(200).json(updatedComment);
+            const comments: CommentDocument[] = await commentService.getAll();
+            return res.json(comments);
         } catch (error) {
-            res.status(500).json({ message: 'Error updating comment', error });
+            console.error(error);
+            return res.status(500).json({ message: "Error interno del servidor" });
         }
     }
 
-    // Eliminar un comentario
-    public async delete(req: Request, res: Response): Promise<void> {
+    public async delete(req: Request, res: Response) {
         try {
-            const { id } = req.params;
-            const comment = await commentService.getById(id);
+            const commentIdToDelete = req.params.id;
 
-            if (!comment) {
-                res.status(404).json({ message: `Comment with ID ${id} not found` });
-                return;
+            const existingComment: CommentDocument | null = await commentService.getById(commentIdToDelete);
+
+            if (!existingComment) {
+                throw new commentNotFoundError(`Comentario con ID ${commentIdToDelete} no encontrado`);
             }
 
-            // Verificar si el usuario es el autor del comentario
-            if (comment.author.toString() !== req.body.loggedUser.user_id) {
-                res.status(403).json({ message: 'You are not authorized to delete this comment' });
-                return;
+            if (req.body.loggedUser.role !== 'superadmin' && req.body.loggedUser.user_id !== existingComment.author.toString()) {
+                throw new notCommentAuthorError("No tienes permiso para eliminar este comentario");
             }
 
-            // Eliminar el comentario
-            await commentService.delete(id);
-            res.status(200).json({ message: 'Comment deleted successfully' });
+            const deletedComment: CommentDocument | null = await commentService.delete(commentIdToDelete);
+
+            return res.json(deletedComment); 
         } catch (error) {
-            res.status(500).json({ message: 'Error deleting comment', error });
+            if (error instanceof commentNotFoundError || error instanceof notCommentAuthorError) {
+                return res.status(403).json({ message: error.message });
+            }
+            console.error(error);
+            return res.status(500).json({ message: "Error interno del servidor" });
+        }
+    }
+
+    public async addReaction(req: Request, res: Response) {
+        try {
+            const commentId = req.params.id;
+            const reaction = { user: req.body.loggedUser.user_id, type: req.body.type };
+
+            const updatedComment: CommentDocument | null = await commentService.addReaction(commentId, reaction);
+
+            if (!updatedComment) {
+                throw new commentNotFoundError(`Comentario con ID ${commentId} no encontrado`);
+            }
+
+            return res.json(updatedComment);
+        } catch (error) {
+            if (error instanceof commentNotFoundError) {
+                return res.status(404).json({ message: error.message });
+            }
+            console.error(error);
+            return res.status(500).json({ message: "Error interno del servidor" });
+        }
+    }
+
+    public async removeReaction(req: Request, res: Response) {
+        try {
+            const commentId = req.params.id;
+            const reactionId = req.body.reactionId;
+
+            const existingComment: CommentDocument | null = await commentService.getById(commentId);
+
+            if (!existingComment) {
+                throw new commentNotFoundError(`Comentario con ID ${commentId} no encontrado`);
+            }
+
+            const reaction = existingComment.reactions?.find(reaction => reaction.id.toString() === reactionId);
+            
+            if (!reaction) {
+                throw new reactionNotFoundError(`Reacción con ID ${reactionId} no encontrada`);
+            }
+
+            if (req.body.loggedUser.user_id !== reaction.user.toString()) {
+                throw new notReactionOwnerError("No tienes permiso para eliminar esta reacción");
+            }
+
+            const updatedComment: CommentDocument | null = await commentService.removeReaction(commentId, reactionId);
+
+            return res.json(updatedComment);
+        } catch (error) {
+            if (error instanceof commentNotFoundError || error instanceof reactionNotFoundError || error instanceof notReactionOwnerError) {
+                return res.status(403).json({ message: error.message });
+            }
+            console.error(error);
+            return res.status(500).json({ message: "Error interno del servidor" });
         }
     }
 }
