@@ -76,7 +76,10 @@ class CommentController {
             console.log('Author ID:', comment.author.toString());
             console.log('Logged User ID:', loggedUserId.toString());
     
-           
+           if(comment.author._id.toString() !== loggedUserId.toString()) {
+                res.status(403).json({ message: 'You are not the author of this comment' });
+                return;
+           }
     
             // Extraer solo los datos necesarios de req.body
             const { content, parentId, reactions } = req.body;
@@ -108,8 +111,12 @@ class CommentController {
                 res.status(404).json({ message: `Comment with ID ${id} not found` });
                 return;
             }
-
-          
+            
+            const loggedUserId = req.body.loggedUser.user_id;
+            if (comment.author._id.toString() !== loggedUserId.toString()) {
+                res.status(403).json({ message: 'You are not the author of this comment' });
+                return;
+            }
 
             // Eliminar el comentario
             await commentService.delete(id);
