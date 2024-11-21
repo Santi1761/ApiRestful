@@ -135,7 +135,6 @@ class UserService {
 
     private generateToken(user: UserDocument): string {
         try {
-
             return jwt.sign({ user_id: user._id, email: user.email, role: user.role }, process.env.JWT_SECRET || "secret", { expiresIn: "5m" });
         } catch (error) {
             throw error;

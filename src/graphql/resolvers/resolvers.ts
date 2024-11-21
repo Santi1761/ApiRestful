@@ -8,20 +8,21 @@ import mongoose from "mongoose";
 
 const resolvers: IResolvers = {
     Query: {
-        getAllUsers: async (_, __, { loggedUser }) => {
+        getAllUsers: async (_, __, context: any) => {
+
+            const { loggedUser } = context;
+
             if (!loggedUser || loggedUser.role !== "superadmin") {
                 throw new GraphQLError("No autorizado", { extensions: { code: "FORBIDDEN" } });
             }
-
+              
             const users = await UserService.getAll();
-            console.log(users); // Verifica los datos obtenidos de la base de datos
 
-            // Si los datos son válidos, asigna valores predeterminados si es necesario
             return users.map(user => ({
                 id: user.id,
-                username: user.username || "default_username", // Asignar valor predeterminado
+                username: user.username,
                 email: user.email,
-                role: user.role,
+                role: user.role || "user"
             }));
         },
 

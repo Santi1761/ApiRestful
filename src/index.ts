@@ -1,6 +1,8 @@
 import express, { Express } from "express";
 import dotenv from "dotenv";
-import { ApolloServer } from "apollo-server-express";
+import { ApolloServer } from "@apollo/server";
+import { expressMiddleware } from "@apollo/server/express4";
+import bodyParser from "body-parser";
 import { db } from "./configs/db";
 import typeDefs from "./graphql/schemas/schema";
 import resolvers from "./graphql/resolvers/resolvers";
@@ -15,45 +17,45 @@ async function startServer() {
   const apolloServer = new ApolloServer({
     typeDefs,
     resolvers,
-    context: async ({ req }) => {
-      const token = req.headers.authorization || "";
-      let loggedUser = null;
+  });
 
-      // Validar el token si está presente
-      if (token) {
-        try {
-          loggedUser = validateToken(token.replace("Bearer ", ""));
-        } catch (error) {
-          if (error instanceof Error) {
-            console.warn("Error al autenticar el usuario:", error.message);
-          } else {
+  await apolloServer.start();
+
+  app.use(
+    "/graphql",
+    bodyParser.json(),
+    expressMiddleware(apolloServer, {
+      context: async ({ req, res }) => {
+        const token = req.headers.authorization || "";
+        let loggedUser = null;
+
+        const jwtToken = token.startsWith("Bearer ") ? token.replace("Bearer ", "") : token;
+
+        if (token) {
+          try {
+            loggedUser = validateToken(jwtToken);
+          } catch (error) {
             console.warn("Error al autenticar el usuario:", error);
           }
         }
-      }
+    
+        return { req, res, loggedUser };
+      },
+    
+    })
+  );
 
-      return { loggedUser }; // Enviar el usuario autenticado al contexto
-    },
-  });
-
-  // Iniciar el servidor Apollo
-  await apolloServer.start();
-  apolloServer.applyMiddleware({ app });
-
-  // Middlewares de Express
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // Ruta de bienvenida
   app.get("/", (_, res) => {
     res.send("Bienvenido al backend GraphQL");
   });
 
-  // Conectar a la base de datos y levantar el servidor
   db.then(() => {
     app.listen(PORT, () => {
       console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-      console.log(`GraphQL listo en http://localhost:${PORT}${apolloServer.graphqlPath}`);
+      console.log(`GraphQL listo en http://localhost:${PORT}/graphql`);
     });
   }).catch((error) => {
     console.error("❌ Error al conectar a la base de datos:", error);
