@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User, { UserDocument } from "../models/users.Models";
-import { notAuthorizedError, userNotFoundError, userExistError, commentNotFoundError, notCommentAuthorError, notReactionOwnerError, reactionNotFoundError  } from "../exceptions/index"; // Asegúrate de tener estas excepciones definidas
+import { notAuthorizedError, userNotFoundError, userExistError, commentNotFoundError, notCommentAuthorError, notReactionOwnerError, reactionNotFoundError } from "../exceptions/index"; // Asegúrate de tener estas excepciones definidas
 
 class UserService {
     public async create(userInput: UserDocument): Promise<UserDocument> {
@@ -11,8 +11,12 @@ class UserService {
                 throw new userExistError("El usuario ya existe");
             }
 
-            userInput.password = await bcrypt.hash(userInput.password, 10);
+            // Validar el campo username
+            if (!userInput.username || userInput.username.trim() === "") {
+                userInput.username = `user_${Date.now()}`; // Generar un username predeterminado
+            }
 
+            userInput.password = await bcrypt.hash(userInput.password, 10);
             const user = await User.create(userInput);
             return user;
         } catch (error) {
@@ -20,37 +24,38 @@ class UserService {
         }
     }
 
+
     public async register(userInput: UserDocument): Promise<UserDocument> {
-        try {            
-            
+        try {
+
             if (!userInput.role) {
-                userInput.role = 'user'; 
+                userInput.role = 'user';
             }
             return await this.create(userInput);
         } catch (error) {
             throw error;
         }
     }
-    
+
 
     public async login(userInput: any) {
         try {
             console.log("Intentando iniciar sesión con:", userInput.email);
-            
+
             const user = await this.findByEmail(userInput.email);
             if (!user) {
                 console.log("Usuario no encontrado");
                 throw new notAuthorizedError("Credenciales inválidas");
             }
-    
+
             const isMatch = await bcrypt.compare(userInput.password, user.password);
             if (!isMatch) {
                 console.log("Contraseña incorrecta");
                 throw new notAuthorizedError("Credenciales inválidas");
             }
-    
+
             console.log("Inicio de sesión exitoso para:", user.email);
-    
+
             const token = this.generateToken(user);
             return {
                 user: {
@@ -66,8 +71,8 @@ class UserService {
             throw error;
         }
     }
-    
-    
+
+
 
     public async getAll(): Promise<UserDocument[]> {
         try {
@@ -89,7 +94,7 @@ class UserService {
 
     public async update(id: string, userInput: Partial<UserDocument>): Promise<UserDocument | null> {
         try {
-            
+
             if (userInput.password) {
                 userInput.password = await bcrypt.hash(userInput.password, 10);
             }
@@ -126,12 +131,12 @@ class UserService {
             throw error;
         }
     }
-    
+
 
     private generateToken(user: UserDocument): string {
         try {
-   
-            return jwt.sign({ user_id: user._id, email: user.email, role: user.role }, process.env.JWT_SECRET || "secret", { expiresIn: "5m" }); 
+
+            return jwt.sign({ user_id: user._id, email: user.email, role: user.role }, process.env.JWT_SECRET || "secret", { expiresIn: "5m" });
         } catch (error) {
             throw error;
         }

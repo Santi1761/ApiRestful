@@ -4,6 +4,7 @@ import CommentService from "../../services/comments.Services";
 import { UserDocument } from "../../models/users.Models";
 import { CommentDocument } from "../../models/comments.Models";
 import { GraphQLError } from "graphql";
+import mongoose from "mongoose";
 
 const resolvers: IResolvers = {
     Query: {
@@ -11,12 +12,29 @@ const resolvers: IResolvers = {
             if (!loggedUser || loggedUser.role !== "superadmin") {
                 throw new GraphQLError("No autorizado", { extensions: { code: "FORBIDDEN" } });
             }
-            return await UserService.getAll();
+
+            const users = await UserService.getAll();
+            console.log(users); // Verifica los datos obtenidos de la base de datos
+
+            // Si los datos son válidos, asigna valores predeterminados si es necesario
+            return users.map(user => ({
+                id: user.id,
+                username: user.username || "default_username", // Asignar valor predeterminado
+                email: user.email,
+                role: user.role,
+            }));
         },
+
+
         getUserById: async (_, { id }, { loggedUser }) => {
             if (!loggedUser) {
                 throw new GraphQLError("No autorizado", { extensions: { code: "FORBIDDEN" } });
             }
+
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+                throw new GraphQLError("ID inválido", { extensions: { code: "BAD_USER_INPUT" } });
+            }
+
             return await UserService.getById(id);
         },
 
