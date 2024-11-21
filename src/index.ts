@@ -1,47 +1,63 @@
-import express, { Express, Request, Response } from 'express';
-import dotenv from 'dotenv';
-import { ApolloServer } from 'apollo-server-express';
-
-import router from './routes/users.Routes';
-import commentRoutes from './routes/comments.Routes';
-import { schema } from './graphql/schema';
-import { db } from './configs/db';
+import express, { Express } from "express";
+import dotenv from "dotenv";
+import { ApolloServer } from "apollo-server-express";
+import { db } from "./configs/db";
+import typeDefs from "./graphql/schemas/schema";
+import resolvers from "./graphql/resolvers/resolvers";
+import { validateToken } from "./middlewares/auth";
 
 dotenv.config();
 
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares para manejar JSON y formularios
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Rutas REST
-app.use('/api/users', router);
-app.use('/comments', commentRoutes);
-
-// Ruta raíz para probar REST
-app.get('/', (req: Request, res: Response) => {
-  res.send('Hello, mundo!');
-});
-
-// Configuración de Apollo Server para GraphQL
-const startApolloServer = async () => {
+async function startServer() {
   const apolloServer = new ApolloServer({
-    schema,
-    introspection: true, // Habilita introspección en desarrollo
+    typeDefs,
+    resolvers,
+    context: async ({ req }) => {
+      const token = req.headers.authorization || "";
+      let loggedUser = null;
+
+      // Validar el token si está presente
+      if (token) {
+        try {
+          loggedUser = validateToken(token.replace("Bearer ", ""));
+        } catch (error) {
+          if (error instanceof Error) {
+            console.warn("Error al autenticar el usuario:", error.message);
+          } else {
+            console.warn("Error al autenticar el usuario:", error);
+          }
+        }
+      }
+
+      return { loggedUser }; // Enviar el usuario autenticado al contexto
+    },
   });
 
+  // Iniciar el servidor Apollo
   await apolloServer.start();
-  apolloServer.applyMiddleware({ app }); // Vincula GraphQL a Express
+  apolloServer.applyMiddleware({ app });
 
-  console.log(`GraphQL is running at http://localhost:${PORT}${apolloServer.graphqlPath}`);
-};
+  // Middlewares de Express
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
-// Conexión a la base de datos y levantamiento del servidor
-db.then(() => {
-  startApolloServer(); // Inicia Apollo Server
-  app.listen(PORT, () => {
-    console.log(`Server is running at http://localhost:${PORT}`);
+  // Ruta de bienvenida
+  app.get("/", (_, res) => {
+    res.send("Bienvenido al backend GraphQL");
   });
-});
+
+  // Conectar a la base de datos y levantar el servidor
+  db.then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+      console.log(`GraphQL listo en http://localhost:${PORT}${apolloServer.graphqlPath}`);
+    });
+  }).catch((error) => {
+    console.error("❌ Error al conectar a la base de datos:", error);
+  });
+}
+
+startServer();

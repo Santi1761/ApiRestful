@@ -3,7 +3,6 @@ import userController from "../controllers/users.Controllers";
 import validateSchema from "../middlewares/validate";
 import userSchema from "../schemas/users.Schemas";
 import authMiddleware from "../middlewares/auth";
-import roleMiddleware from "../middlewares/role";
 
 export const router = express.Router();
 
@@ -14,10 +13,9 @@ router.post("/register", validateSchema(userSchema), userController.register);
 router.post("/login", userController.login);
 
 // Crear usuario (requiere autenticación y rol de superadmin)
-router.post("/", 
-    authMiddleware, 
-    roleMiddleware(['superadmin']),
-    validateSchema(userSchema), 
+router.post("/",
+    authMiddleware,
+    validateSchema(userSchema),
     userController.create
 );
 
@@ -33,16 +31,15 @@ router.get("/:id/group/:groupId", authMiddleware, (req: Request, res: Response) 
 router.get("/:id", authMiddleware, userController.getById);
 
 // Actualizar usuario (requiere autenticación)
-router.put("/:id", 
-    authMiddleware, 
-    validateSchema(userSchema), 
+router.put("/:id",
+    authMiddleware,
+    validateSchema(userSchema),
     userController.update
 );
 
 // Eliminar usuario (requiere autenticación y rol de superadmin)
-router.delete("/:id", 
-    authMiddleware, 
-    roleMiddleware(['superadmin']), 
+router.delete("/:id",
+    authMiddleware,
     userController.delete
 );
 

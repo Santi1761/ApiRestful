@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import commentController from '../controllers/comments.Controllers';
 import authMiddleware from '../middlewares/auth';
-import roleMiddleware from '../middlewares/role';
 
 const router = Router();
 

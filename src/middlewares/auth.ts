@@ -1,54 +1,46 @@
-import { Request, Response, NextFunction } from "express";
 import jwt, { TokenExpiredError } from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
 import User from "../models/users.Models";
+
+export const validateToken = (token: string) => {
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret") as any;
+
+        if (!decoded || !decoded.user_id) {
+            throw new Error("Token inválido");
+        }
+
+        return {
+            user_id: decoded.user_id,
+            email: decoded.email,
+            role: decoded.role,
+        };
+    } catch (error) {
+        if (error instanceof TokenExpiredError) {
+            throw new Error("Token expirado");
+        }
+        throw new Error("Token inválido");
+    }
+};
 
 const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const userCount = await User.countDocuments();
-
-        console.log(`User count: ${userCount}`);
-        console.log(`Request method: ${req.method}`);
-        console.log(`Request originalUrl: ${req.originalUrl}`);
-        console.log(`Request path: ${req.path}`);
-
-        
-        if (userCount === 0 && req.method === "POST" && req.originalUrl === "/api/users/") {
-            console.log("Creating first user - skipping auth");
-            return next();
-        }
-
-        
         let token: string | undefined = req.headers.authorization;
 
         if (!token) {
             return res.status(401).json({ message: "No autorizado" });
         }
 
-        
-        token = token.replace("Bearer ", ""); 
+        token = token.replace("Bearer ", "");
+        const loggedUser = validateToken(token);
 
-        
-        const decoded: any = jwt.verify(token, process.env.JWT_SECRET || "secret");
-
-        
-        if (!decoded || !decoded.user_id) {
-            return res.status(401).json({ message: "Token inválido" });
-        }
-
-       
-        req.body.loggedUser = {
-            user_id: decoded.user_id,
-            email: decoded.email,
-            role: decoded.role
-        };
-
+        req.body.loggedUser = loggedUser;
         next();
     } catch (error) {
-        if (error instanceof TokenExpiredError) {
-            return res.status(401).json({ message: "Token expirado", error });
-        } else {
-            return res.status(401).json({ message: "Token inválido", error });
+        if (error instanceof Error) {
+            return res.status(401).json({ message: error.message });
         }
+        return res.status(401).json({ message: "Unknown error" });
     }
 };
 
